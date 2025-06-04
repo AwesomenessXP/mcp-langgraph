@@ -16,7 +16,10 @@ load_dotenv()
 # Define the state schema
 class AgentState(TypedDict, total=False):
     messages: Union[str, BaseMessage, List[BaseMessage]]
+    query: str
+    step: int
     error: str
+    current_answer: str
 
 # Initialize the model
 model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
@@ -52,11 +55,11 @@ def error_node(state: AgentState):
         error_text = state.get("error", "Unknown error")
 
     print("⚠️ Error encountered:", error_text)
-    return {"messages": [f"Error: {error_text}"], "error": error_text}
+    return {"messages": [f"Error: {error_text}"], "error": error_text, "step": state.get("step", 1)}
 
 # Node where the model decides to use the divide tool
-async def divide_node(state: AgentState):
-    print("divide_node")
+async def reasoning_node(state: AgentState):
+    print("reasoning_node\n\n")
     try:
         client = MultiServerMCPClient({
             "math": {
@@ -65,16 +68,114 @@ async def divide_node(state: AgentState):
             }
         })
         tools = await client.get_tools()
-        model_with_tools = model.bind_tools(tools)
-        response = await model_with_tools.ainvoke(state["messages"])
-        print("divide_node response", response)
-        return {"messages": [response]}
+        # Only keep the add tool
+        add_tool = next(t for t in tools if t.name == "add")
+        model_with_tools = model.bind_tools([add_tool])  # Only the add tool is available
+        
+        # Your custom prompt
+        system_prompt = (
+            "Step 1: add the first two numbers in the innermost parentheses, only use the add tool"
+        )
+
+        # Extract user message(s)
+        user_msg = state["messages"][-1].content if isinstance(state["messages"], list) else state["messages"]
+
+        # Compose message list (system prompt + user message)
+        chat_history = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_msg}
+        ]
+
+        response = await model_with_tools.ainvoke(chat_history)
+        # print("query in reasoning_node", user_msg)
+        # print("current_answer", response)
+        return {"messages": [response], "step": 1, "query": user_msg, "current_answer": ""}
     except Exception as e:
-        return {"error": str(e)}
+        return {"messages": [f"Error: {e}"], "step": 1, "query": user_msg, "current_answer": "", "error": str(e)}
+    
+async def reasoning_node_2(state: AgentState):
+    print("reasoning_node_2\n\n")
+    try:
+        client = MultiServerMCPClient({
+            "math": {
+                "url": "http://127.0.0.1:8001/mcp",
+                "transport": "streamable_http"
+            }
+        })
+        tools = await client.get_tools()
+        # Only keep the add tool
+        sub_tool = next(t for t in tools if t.name == "sub")
+        model_with_tools = model.bind_tools([sub_tool])  # Only the add tool is available
+
+        current_answer = state.get("current_answer", "")
+
+        print("current_answer", current_answer)
+        
+        # Your custom prompt
+        system_prompt = (
+            "Subtract 8 from the current answer, use the subtract tool. Current answer: " + current_answer
+        )
+
+        print("system_prompt", system_prompt)
+
+        # Extract user message(s)
+        query = state.get("query", "")  
+
+        # Compose message list (system prompt + user message)
+        chat_history = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": current_answer}
+        ]
+
+        messages = state.get("messages", [])
+
+        response = await model_with_tools.ainvoke(chat_history)
+        return {"messages": messages + [response], "step": 2, "query": query, "current_answer": ""}
+    except Exception as e:
+        return {"messages": [f"Error: {e}"], "step": 2, "query": query, "current_answer": "", "error": str(e)}
+    
+async def reasoning_node_3(state: AgentState):
+    print("reasoning_node_3\n\n")
+    try:
+        client = MultiServerMCPClient({
+            "math": {
+                "url": "http://127.0.0.1:8001/mcp",
+                "transport": "streamable_http"
+            }
+        })
+        tools = await client.get_tools()
+        # Only keep the add tool
+        multiply_tool = next(t for t in tools if t.name == "multiply")
+        model_with_tools = model.bind_tools([multiply_tool])  # Only the add tool is available
+
+        current_answer = state.get("current_answer", "")
+        print("current_answer", current_answer)
+        # Your custom prompt
+        system_prompt = (
+            "Multiply the current answer by 6, use the multiply tool. Current answer: " + current_answer
+        )
+
+        print("system_prompt", system_prompt)
+
+        # Extract user message(s)
+        query = state.get("query", "")
+
+        # Compose message list (system prompt + user message)
+        chat_history = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": current_answer}
+        ]
+
+        messages = state.get("messages", [])
+
+        response = await model_with_tools.ainvoke(chat_history)
+        return {"messages": messages + [response], "step": 3, "query": query, "current_answer": ""}
+    except Exception as e:
+        return {"messages": [f"Error: {e}"], "step": 3, "query": query, "current_answer": response.content, "error": str(e)}
 
 # Node to safely execute the divide tool
-async def safe_tool_runner(state: AgentState):
-    print("safe_tool_runner")
+async def acting_node(state: AgentState):
+    print("acting_node\n\n")
     try:
         client = MultiServerMCPClient({
             "math": {
@@ -84,24 +185,48 @@ async def safe_tool_runner(state: AgentState):
         })
         tools = await client.get_tools()
         tool_node = ToolNode(tools)
+
+        messages = state.get("messages", [])
+
+        # print("state in acting_node", state)
         result = await tool_node.ainvoke(state)
-        print("safe_tool_runner result", result)
-        return result
+        print("result in acting_node", result)
+
+        # Get previous messages and new tool messages
+        step = state.get("step", 1)
+        
+        new_messages = result.get("messages", [])
+
+        query = state.get("query", "")
+        current_answer = new_messages[0].content if new_messages else ""
+        # Combine (append) the messages
+        # messages = prior_messages + new_messages
+        # Check last message for error status
+        if isinstance(new_messages, list) and new_messages:
+            last_msg = new_messages[-1]
+            # For LangChain ToolMessage, status may be an attribute or dict key
+            status = getattr(last_msg, "status", None)
+            if status == "error":
+                return {"messages": messages + [f"Error: {last_msg.content}"], "error": last_msg.content, "step": step, "query": query, "current_answer": current_answer}
+        # print("acting_node result", result)
+        return {"messages": messages, "step": step, "query": query, "current_answer": current_answer}
     except Exception as e:
-        return {"error": f"Tool execution failed: {str(e)}"}
+        return {"messages": state.get("messages", []) + [f"Error: {e}"], "step": step, "query": query, "current_answer": current_answer, "error": str(e)}
 
 # Build the LangGraph
 async def build_graph():
     graph_builder = StateGraph(AgentState)
-    graph_builder.add_node("divide_node", RunnableLambda(divide_node))
-    graph_builder.add_node("safe_tools", RunnableLambda(safe_tool_runner))
+    graph_builder.add_node("reasoning_node", RunnableLambda(reasoning_node))
+    graph_builder.add_node("reasoning_node_2", RunnableLambda(reasoning_node_2))
+    graph_builder.add_node("reasoning_node_3", RunnableLambda(reasoning_node_3))
+    graph_builder.add_node("safe_tools", RunnableLambda(acting_node))
     graph_builder.add_node("error_node", RunnableLambda(error_node))
 
-    graph_builder.set_entry_point("divide_node")
+    graph_builder.set_entry_point("reasoning_node")
 
     # Routing logic based on the presence of errors or tool calls
     def route(state: AgentState):
-        print("state", state)
+        # print("state", state)
         if "error" in state:
             return "error_node"
         messages = state.get("messages", [])
@@ -111,22 +236,24 @@ async def build_graph():
                 return "safe_tools"
         return END
 
-    graph_builder.add_conditional_edges("divide_node", route)
+    graph_builder.add_conditional_edges("reasoning_node", route)
+    graph_builder.add_conditional_edges("reasoning_node_2", route)
+    graph_builder.add_conditional_edges("reasoning_node_3", route)
     
     # Route after safe_tools: end if success, error_node if error
     def route_from_safe_tools(state: AgentState):
-        print("route_from_safe_tools", state)
-        messages = state.get("messages", [])
-        # Check last message for error status
-        if isinstance(messages, list) and messages:
-            last_msg = messages[-1]
-            # For LangChain ToolMessage, status may be an attribute or dict key
-            status = getattr(last_msg, "status", None)
-            # Or, if using dicts:
-            # status = last_msg.get("status")
-            if status == "error":
-                return "error_node"
-        return END
+        # print("state in route_from_safe_tools", state)
+        error = state.get("error", None)
+        if error:
+            return "error_node"
+        # Default to step 2 if not set
+        step = state.get("step", 1)
+        if step == 1:
+            return "reasoning_node_2"
+        elif step == 2:
+            return "reasoning_node_3"
+        else:
+            return END
         
     graph_builder.add_conditional_edges("safe_tools", route_from_safe_tools)
 
@@ -142,7 +269,14 @@ async def main(query: str):
     return response
 
 if __name__ == "__main__":
-    response = asyncio.run(main("Multiply 64 by 4 using the multiply tool"))
+    response = asyncio.run(main(
+        """
+        Calculate the following expression:
+
+        ((17 + 25) - 8) * 6
+
+        what is the final answer?
+        """))
     print('------------')
     print(response)
 
