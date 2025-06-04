@@ -1,0 +1,15 @@
+{
+  "messages": [
+    {
+      "content": "256",
+      "additional_kwargs": {},
+      "response_metadata": {},
+      "type": "tool",
+      "name": "multiply",
+      "id": null,
+      "tool_call_id": "call_Hz5XfrZxAKAHIRLBLtuWCfHH",
+      "artifact": null,
+      "status": "success"
+    }
+  ]
+}
