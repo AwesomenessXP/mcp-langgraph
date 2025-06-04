@@ -89,9 +89,20 @@ async def reasoning_node(state: AgentState):
         response = await model_with_tools.ainvoke(chat_history)
         # print("query in reasoning_node", user_msg)
         # print("current_answer", response)
-        return {"messages": [response], "step": 1, "query": user_msg, "current_answer": ""}
+        return {
+            "messages": [response], 
+            "step": 1, 
+            "query": user_msg, 
+            "current_answer": "",
+        }
     except Exception as e:
-        return {"messages": [f"Error: {e}"], "step": 1, "query": user_msg, "current_answer": "", "error": str(e)}
+        return {
+            "messages": [], 
+            "step": 1, 
+            "query": user_msg, 
+            "current_answer": "", 
+            "error": str(e)
+        }
     
 async def reasoning_node_2(state: AgentState):
     print("reasoning_node_2\n\n")
@@ -130,9 +141,20 @@ async def reasoning_node_2(state: AgentState):
         messages = state.get("messages", [])
 
         response = await model_with_tools.ainvoke(chat_history)
-        return {"messages": messages + [response], "step": 2, "query": query, "current_answer": ""}
+        return {
+            "messages": messages + [response], 
+            "step": 2, 
+            "query": query, 
+            "current_answer": ""
+        }
     except Exception as e:
-        return {"messages": [f"Error: {e}"], "step": 2, "query": query, "current_answer": "", "error": str(e)}
+        return {
+            "messages": messages, 
+            "step": 2, 
+            "query": query, 
+            "current_answer": "", 
+            "error": str(e)
+        }
     
 async def reasoning_node_3(state: AgentState):
     print("reasoning_node_3\n\n")
@@ -169,9 +191,20 @@ async def reasoning_node_3(state: AgentState):
         messages = state.get("messages", [])
 
         response = await model_with_tools.ainvoke(chat_history)
-        return {"messages": messages + [response], "step": 3, "query": query, "current_answer": ""}
+        return {
+            "messages": messages + [response], 
+            "step": 3, 
+            "query": query, 
+            "current_answer": "",
+        }
     except Exception as e:
-        return {"messages": [f"Error: {e}"], "step": 3, "query": query, "current_answer": response.content, "error": str(e)}
+        return {
+            "messages": messages,
+            "step": 3, 
+            "query": query, 
+            "current_answer": response.content, 
+            "error": str(e)
+        }
 
 # Node to safely execute the divide tool
 async def acting_node(state: AgentState):
@@ -198,20 +231,38 @@ async def acting_node(state: AgentState):
         new_messages = result.get("messages", [])
 
         query = state.get("query", "")
+
+        # return only the most relevant tool (the first tool)
         current_answer = new_messages[0].content if new_messages else ""
-        # Combine (append) the messages
-        # messages = prior_messages + new_messages
+
         # Check last message for error status
         if isinstance(new_messages, list) and new_messages:
             last_msg = new_messages[-1]
             # For LangChain ToolMessage, status may be an attribute or dict key
             status = getattr(last_msg, "status", None)
             if status == "error":
-                return {"messages": messages + [f"Error: {last_msg.content}"], "error": last_msg.content, "step": step, "query": query, "current_answer": current_answer}
+                return {
+                    "messages": messages + [f"Error: {last_msg.content}"], 
+                    "error": last_msg.content, 
+                    "step": step, 
+                    "query": query, 
+                    "current_answer": current_answer
+                }
         # print("acting_node result", result)
-        return {"messages": messages, "step": step, "query": query, "current_answer": current_answer}
+        return {
+            "messages": messages, 
+            "step": step, 
+            "query": query, 
+            "current_answer": current_answer
+        }
     except Exception as e:
-        return {"messages": state.get("messages", []) + [f"Error: {e}"], "step": step, "query": query, "current_answer": current_answer, "error": str(e)}
+        return {
+            "messages": messages,
+            "step": step,
+            "query": query,
+            "current_answer": current_answer,
+            "error": str(e)
+        }
 
 # Build the LangGraph
 async def build_graph():
