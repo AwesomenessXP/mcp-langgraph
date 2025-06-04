@@ -14,7 +14,7 @@ async def reasoning_node_3(state: AgentState):
         })
         tools = await client.get_tools()
         # Initialize the model
-        model = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        model = ChatOpenAI(model="gpt-4o", temperature=0)
         model_with_tools = model.bind_tools(tools)  # Only the add tool is available
 
         current_answer = state.get("current_answer", "")
@@ -28,7 +28,7 @@ async def reasoning_node_3(state: AgentState):
 
             Current answer: {current_answer}
 
-            Return the email as a string.
+            Return the email as a paragraph as a string.
             """
         )
 
