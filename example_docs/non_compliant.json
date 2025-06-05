@@ -1,0 +1,79 @@
+{
+    "document_id": "coi789",
+    "named_insured": "ABC Subcontractors LLC",
+    "insured_address": "123 Industrial Way, Cityville, TX 75001",
+    "producer": {
+        "agency_name": "Reliable Insurance Brokers",
+        "agent_name": "Jane Doe",
+        "address": "456 Commerce Blvd, Dallas, TX 75201"
+    },
+    "certificate_holder": "Simile Construction",
+    "project_id": "PRJ-2025-XYZ",
+    "carriers": {
+        "general_liability": "Travelers Property Casualty Company of America",
+        "auto_liability": "State Farm Mutual Automobile Insurance Company",
+        "workers_compensation": "The Hartford Accident and Indemnity Company",
+        "professional_liability": "Hiscox Insurance Company Inc.",
+        "umbrella_liability": "Chubb Excess and Surplus Insurance Services"
+    },
+    "coverages": [
+        {
+        "coverage_type": "General Liability",
+        "policy_number": "GL-555555",
+        "effective_date": "2024-05-01",
+        "expiry_date": "2025-05-01",
+        "limit_per_occurrence": 500000,
+        "limit_aggregate": 1000000,
+        "project_box_checked": true,
+        "endorsements": ["CG 20 10", "CG 20 37", "CG 25 03 05 09"],
+        "additional_insureds": ["Simile Construction", "Project Owner", "Client"],
+        "waiver_of_subrogation": true
+        },
+        {
+        "coverage_type": "Automobile Liability",
+        "policy_number": "AL-444444",
+        "effective_date": "2024-05-01",
+        "expiry_date": "2025-05-01",
+        "limit_combined_single": 500000,
+        "endorsements": ["Additional Insured", "Primary Wording", "Waiver of Subrogation"],
+        "waiver_of_subrogation": true,
+        "additional_insureds": ["Simile Construction", "Project Owner", "Client"]
+        },
+        {
+        "coverage_type": "Workers' Compensation",
+        "policy_number": "WC-333333",
+        "effective_date": "2024-05-01",
+        "expiry_date": "2025-05-01",
+        "limit_statutory": true,
+        "employers_liability_limit": 500000,
+        "endorsements": ["Waiver of Subrogation"],
+        "waiver_of_subrogation": true,
+        "additional_insureds": ["Project Owner", "Client"]
+        },
+        {
+        "coverage_type": "Professional Liability",
+        "policy_number": "PL-222222",
+        "effective_date": "2024-05-01",
+        "expiry_date": "2025-05-01",
+        "limit_per_claim": 1000000,
+        "limit_aggregate": 2000000,
+        "project_specific": false
+        },
+        {
+        "coverage_type": "Umbrella Liability",
+        "policy_number": "UL-111111",
+        "effective_date": "2024-05-01",
+        "expiry_date": "2025-05-01",
+        "limit_aggregate": 500000,
+        "endorsements": ["Follows Form General Liability", "Auto Liability"]
+        }
+    ],
+    "description_of_operations": "All operations performed by ABC Subcontractors LLC on Project PRJ-2025-XYZ for Simile Construction and related parties, as per written contract requirements. All required endorsements, including Additional Insured, Waiver of Subrogation, and Primary wording, are in force and remain valid through the warranty period of the project.",
+    "additional_endorsements_notes": "Endorsements CG 20 10 and CG 20 37 included with proper wording for Additional Insured; CG 25 03 05 09 is also provided ensuring project-specific coverage.",
+    "specialty_coverages": {
+        "professional_liability": {
+        "required": true,
+        "description": "Required due to design and testing services provided, coverage is not project-specific."
+        }
+    }
+}

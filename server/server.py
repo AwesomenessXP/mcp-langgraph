@@ -28,25 +28,31 @@ def extract_summary(document: str) -> str:
     1. Format the document as a JSON object.
 
     2. Extract and output a JSON object with the following keys:
-    - coverage_types (GL, Auto, Workers' Comp, Prof. Liability, Umbrella Liability)
-    - coverage_limits (stated for GL, Auto, Workers' Comp, Prof. Liability, Umbrella Liability, check $1M minimum)
-    - effective_date for each coverage type
-    - expiry_date for each coverage type
-    - named_insured (exact match needed)
-    - certificate_holder (“Simile Construction” and others)
-    - project_id (any present)
-    - additional_insureds (“Simile Construction”, owner, client; list missing)
-    - waiver_of_subrogation (flag presence)
-    - endorsements (CG 20 10, CG 20 37, equivalents, Workers's Comp endorsements per needs)
-    Additional Endorsements (as above, with correct wording if possible)
+	•	certificate_type: Certificate type is specified (e.g., ACORD 25).
+    •	certificate_holder: Certificate holder is correctly named.
+    •	producer: Subcontractor's insurance agent (name and location).
+    •	insured: Subcontractor's legal name and business address.
+    •	carriers: All insurance providers for each policy.
+	•	coverage_types_present: All required coverage types are included.
+	•	coverage_limits: Coverage limits are provided for each applicable policy.
+	•	policy_dates: Effective and expiration dates are listed for all coverages.
+    •	policy_numbers: Policy numbers are listed for all coverages.
+	•	project_identification: Project name or address is included for identification.
+	•	additional_insureds: All required additional insured entities are listed; note any missing.
+	•	waiver_of_subrogation: Waiver of subrogation is present where required.
+	•	primary_and_noncontributory: Primary and noncontributory wording is included where required.
+	•	endorsements: Required endorsements (for each coverage type) are present and wording is correct.
+	•	additional_endorsements: Additional endorsements (e.g., primary and noncontributory, waiver of subrogation for GL) are included.
+	•	missing_fields: Any required fields that could not be found are listed, with the reason.
 
+    Additional Endorsements (as above, with correct wording if possible)
 
     Do not add any explanation or formatting. Output ONLY the JSON object.
     """
     prompt = PROMPT_TEMPLATE.format(document=document)
     # You can swap out with your LLM of choice, or use LangChain for abstraction
     response = client.chat.completions.create(
-        model="gpt-4.1-mini-2025-04-14",
+        model="gpt-4.1-2025-04-14",
         messages=[{"role": "user", "content": prompt}],
         temperature=0
     )
@@ -55,33 +61,100 @@ def extract_summary(document: str) -> str:
 @mcp.tool()
 def analyze_summary(summary: str) -> str:
     """
-    You are an ACORD 25 insurance expert. Analyze extracted summary for issues.
-    Returns a recommendation message string.
+    You are an ACORD 25 insurance expert. Analyze extracted summary for compliance.
     """
+    
     ANALYSIS_PROMPT = """
     Given the following extracted insurance summary as a JSON object:
 
     {summary}
 
-    Analyze for the following and espond with output ONLY the JSON object with the following keys:
-    - producer (subcontractor's insurance agent (name and location))
-    - insured (subcontractor's legal name and business address)
-    - carriers (all insurance providers must be named)
-    - policy_details (confirm policy numbers and expiration dates for each coverage)
-    - general_liability (project box must be checked unless CG 25 03 05 09 endorsement is provided)
-    - specialty_coverages (“Other Insurance” section: Used for Professional Liability: Required for any design or testing services. Does not need to be project-specific.)
-    - description_of_operations (must include all of the following)
-    - certificate_holder (must be listed exactly)
-    - required_endorsements (must remain valid through the warranty period of the project)
-    - auto_insurance_endorsements (must include: Additional Insured, Primary Wording, Waiver of Subrogation)
-    - workers_compensation_endorsement (must list: The Project Owner and Client, or anyone else required by written contract)
-    - additional_endorsements (as above, with correct wording if possible)
-    - limits for each coverage type (check $1M minimum)
+    Analyze for the following and respond with analysis for each key with ONLY the JSON object with the following keys:
+
+    1. Basics:
+        •	producer: Subcontractor's insurance aagent's name and location.
+        •	insured: Subcontractor's legal name and business address.
+        •	carriers: All insurance providers for each policy.
+        •	Policy Details: Policy number and expiration date for:
+            •	General Liability
+            •	Auto Liability
+            •	Umbrella/Excess Liability
+            •	Workers's Compensation
+            •	Professional, Pollution, or Inland Marine (if applicable)
+
+    ⸻
+
+    2. Minimum Coverage Limits (Meet or Exceed):
+        •	(General Liability, Auto Liability, Umbrella/Excess Liability, Workers's Compensation): $1M per occurrence
+        •	Professional/Pollution/Inland Marine (if applicable): $2M per occurrence
+
+    ⸻
+
+    3. General Liability:
+        •	Project Box: Must be checked
+        •	OR the CG 25 03 05 09 Per Project Aggregate endorsement must be attached.
+
+    ⸻
+
+    4. Specialty Coverages:
+        •	Professional, Pollution, and Inland Marine:
+        •	“Other Insurance” section must reference these coverages as applicable.
+        •	Professional Liability: Required for any design or testing services (does not need to be project-specific).
+        •	Pollution/Inland Marine: Must be project-specific.
+
+    ⸻
+
+    5. Description of Operations (Must Include All):
+        •	Job Name
+        •	Job Address
+        •	Simile Construction Project #
+        •	“Simile Construction Service, Inc.” is listed
+        •	All required additional insureds per subcontract agreement
+
+    ⸻
+
+    6. Certificate Holder (Must Match Exactly):
+
+    Simile Construction Service, Inc.
+    4725 Enterprise Way #1
+    Modesto, CA 95356
+
+    ⸻
+
+    7. Required Endorsements for General Liability (Must Remain Valid Through Project Warranty Period):
+        •	CG 20 10 07 04 - Ongoing operations
+        •	Must state either:
+        •	“As required by written contract/agreement”
+        •	OR: “Simile Construction Service, Inc., its directors, officers, and employees and any other person or organization as required by written contract”
+        •	CG 20 37 07 04 - Completed operations
+        •	Must include same additional insured language as CG 20 10.
+        •	CG 20 01 04 13 - Primary & Non-Contributory
+        •	Must be a separate endorsement OR listed in Description.
+        •	CG 24 04 05 09 - Waiver of Subrogation
+        •	Protects Simile Construction from liability claims by the subcontractor's insurer.
+        •	CG 25 03 05 09 - Per Project Aggregate
+        •	Required if Project box is not checked on the COI.
+
+    ⸻
+
+    8. Auto Insurance Endorsements (All Must Be Included):
+        •	Additional Insured
+        •	Primary Wording
+        •	Waiver of Subrogation
+
+    ⸻
+
+    9. Workers's Compensation Endorsement:
+        •	WC 00 03 13 - Waiver of Subrogation:
+            •	Must list:
+                •	Simile Construction Service, Inc.
+                •	The Project Owner and Client
+                •	Anyone else required by written contract
     """
 
     prompt = ANALYSIS_PROMPT.format(summary=summary)
     response = client.chat.completions.create(
-        model="gpt-4.1-mini-2025-04-14",
+        model="gpt-4.1-2025-04-14",
         messages=[{"role": "user", "content": prompt}],
         temperature=0
     )
@@ -99,16 +172,16 @@ def format_email(analysis: str) -> str:
     {analysis}
 
     Write a professional, clear email to the policyholder.
-    - Address them by name.
-    - Include the policy holder's name.
+    - Address the certificate holder by name.
     - Briefly summarize the analysis/recommendation.
     - Sign off as 'Insurance Team'.
 
-    Only output the email as a paragraph as a string.
+    Format the output as a professional email with a subject line, greeting, body, and closing, all as a single string.
+    Do not use markdown or code blocks—output only the email as it would be sent.
     """
     prompt = EMAIL_PROMPT.format(analysis=analysis)
     response = client.chat.completions.create(
-        model="gpt-4.1-mini-2025-04-14",
+        model="gpt-4.1-2025-04-14",
         messages=[{"role": "user", "content": prompt}],
         temperature=0
     )

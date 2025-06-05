@@ -28,7 +28,8 @@ async def reasoning_node_3(state: AgentState):
 
             Current answer: {current_answer}
 
-            Return the email as a paragraph as a string.
+            Format the output as a professional email with a subject line, greeting, body, and closing, all as a single string.
+            Do not use markdown or code blocks—output only the email as it would be sent.
             """
         )
 

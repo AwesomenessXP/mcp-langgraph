@@ -1,5 +1,6 @@
 import asyncio
 import json
+import argparse
 
 from dotenv import load_dotenv
 from client.state_machine import build_graph, serialize_message
@@ -13,52 +14,15 @@ async def main(query: str):
     return response
 
 if __name__ == "__main__":
-    response = asyncio.run(main(
-        """
-        {
-        "document_id": "coi456",
-        "pages": [
-            {
-            "page_number": 1,
-            "tables": [
-                {
-                "title": "Coverage Table",
-                "rows": [
-                    {
-                    "Type of Insurance": "General Liability",
-                    "Policy Number": "GL-222222",
-                    "Effective Date": "2024-05-01",
-                    "Expiration Date": "2025-05-01",
-                    "Limits": "$2,000,000 per occurrence"
-                    },
-                    {
-                    "Type of Insurance": "Automobile Liability",
-                    "Policy Number": "",
-                    "Effective Date": "",
-                    "Expiration Date": "",
-                    "Limits": ""
-                    }
-                ]
-                }
-            ]
-            },
-            {
-            "page_number": 2,
-            "tables": [
-                {
-                "type": "key_value",
-                "key_value_data": [
-                    { "key": "Workers' Compensation Policy", "value": "WC-888888" },
-                    { "key": "Workers' Compensation Effective Date", "value": "2024-05-01" },
-                    { "key": "Workers' Compensation Expiry Date", "value": "2025-05-01" },
-                    { "key": "Umbrella Liability Aggregate", "value": "$5,000,000" }
-                ]
-                }
-            ]
-            }
-        ]
-        }
-        """))
+    parser = argparse.ArgumentParser(description="Process a COI JSON file.")
+    parser.add_argument("json_path", help="Path to the COI JSON file")
+    args = parser.parse_args()
+
+    # Load the COI document from the specified file path
+    with open(args.json_path, "r") as f:
+        coi = json.load(f)
+
+    response = asyncio.run(main(f"{coi}"))
     print('------------')
     print(serialize_message(response.get("current_answer", "")))
 
