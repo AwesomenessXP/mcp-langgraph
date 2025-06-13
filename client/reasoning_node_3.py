@@ -7,7 +7,7 @@ async def reasoning_node_3(state: AgentState):
     print("reasoning_node_3\n\n")
     try:
         client = MultiServerMCPClient({
-            "insurance_compliance": {
+            "acord_25_insurance_compliance": {
                 "url": "http://127.0.0.1:8001/mcp",
                 "transport": "streamable_http"
             }
@@ -15,7 +15,7 @@ async def reasoning_node_3(state: AgentState):
         tools = await client.get_tools()
         # Initialize the model
         model = ChatOpenAI(model="gpt-4o", temperature=0)
-        model_with_tools = model.bind_tools(tools)  # Only the add tool is available
+        model_with_tools = model.bind_tools(tools)
 
         current_answer = state.get("current_answer", "")
         print("current_answer", current_answer)

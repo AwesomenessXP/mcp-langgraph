@@ -8,7 +8,7 @@ async def reasoning_node(state: AgentState):
     print("reasoning_node\n\n")
     try:
         client = MultiServerMCPClient({
-            "insurance_compliance": {
+            "acord_25_insurance_compliance": {
                 "url": "http://127.0.0.1:8001/mcp",
                 "transport": "streamable_http"
             }
@@ -17,7 +17,7 @@ async def reasoning_node(state: AgentState):
 
         # Initialize the model
         model = ChatOpenAI(model="gpt-4o", temperature=0)
-        model_with_tools = model.bind_tools(tools)  # Only the add tool is available
+        model_with_tools = model.bind_tools(tools)
         
         # Your custom prompt
         system_prompt = (

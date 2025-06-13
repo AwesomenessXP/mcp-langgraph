@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # math_server.py
-mcp = FastMCP("insurance_compliance")
+mcp = FastMCP("acord_25_insurance_compliance")
 
 import openai
 
@@ -27,7 +27,7 @@ def extract_summary(document: str) -> str:
 
     1. Format the document as a JSON object.
 
-    2. Extract and output a JSON object with the following keys:
+    2. Extract, create a checklist of all the keys and output a JSON object with the following keys:
 	•	certificate_type: Certificate type is specified (e.g., ACORD 25).
     •	certificate_holder: Certificate holder is correctly named.
     •	producer: Subcontractor's insurance agent (name and location).
@@ -82,19 +82,16 @@ def analyze_summary(summary: str) -> str:
             •	Workers's Compensation
             •	Professional, Pollution, or Inland Marine (if applicable)
 
-    ⸻
 
     2. Minimum Coverage Limits (Meet or Exceed):
         •	(General Liability, Auto Liability, Umbrella/Excess Liability, Workers's Compensation): $1M per occurrence
         •	Professional/Pollution/Inland Marine (if applicable): $2M per occurrence
 
-    ⸻
 
     3. General Liability:
         •	Project Box: Must be checked
         •	OR the CG 25 03 05 09 Per Project Aggregate endorsement must be attached.
 
-    ⸻
 
     4. Specialty Coverages:
         •	Professional, Pollution, and Inland Marine:
@@ -102,7 +99,6 @@ def analyze_summary(summary: str) -> str:
         •	Professional Liability: Required for any design or testing services (does not need to be project-specific).
         •	Pollution/Inland Marine: Must be project-specific.
 
-    ⸻
 
     5. Description of Operations (Must Include All):
         •	Job Name
@@ -111,15 +107,12 @@ def analyze_summary(summary: str) -> str:
         •	“Simile Construction Service, Inc.” is listed
         •	All required additional insureds per subcontract agreement
 
-    ⸻
 
     6. Certificate Holder (Must Match Exactly):
 
     Simile Construction Service, Inc.
     4725 Enterprise Way #1
     Modesto, CA 95356
-
-    ⸻
 
     7. Required Endorsements for General Liability (Must Remain Valid Through Project Warranty Period):
         •	CG 20 10 07 04 - Ongoing operations
@@ -135,14 +128,10 @@ def analyze_summary(summary: str) -> str:
         •	CG 25 03 05 09 - Per Project Aggregate
         •	Required if Project box is not checked on the COI.
 
-    ⸻
-
     8. Auto Insurance Endorsements (All Must Be Included):
         •	Additional Insured
         •	Primary Wording
         •	Waiver of Subrogation
-
-    ⸻
 
     9. Workers's Compensation Endorsement:
         •	WC 00 03 13 - Waiver of Subrogation:
@@ -158,7 +147,7 @@ def analyze_summary(summary: str) -> str:
         messages=[{"role": "user", "content": prompt}],
         temperature=0
     )
-
+    
     return response.choices[0].message.content.strip()
 
 @mcp.tool()
